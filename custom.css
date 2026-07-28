@@ -1,0 +1,118 @@
+/* add your custom css here */
+body {
+    width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    margin: 0 auto;
+}
+
+#my-svg-chart,
+svg {
+    position: relative;
+    display: block;
+    margin: 0 auto;
+}
+
+button {
+    cursor: pointer;
+    margin: 0 auto 10px auto;
+    display: inline-block;
+}
+
+
+
+
+/* Here is the scrollama related styles */
+
+#scroll-content {
+    position: relative;
+    padding: 1rem;
+}
+
+#scroll-content #text {
+    position: relative;
+    padding: 0;
+    max-width: 20rem;
+    margin: 0 auto;
+}
+
+#scroll-content #my-svg-chart {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    -webkit-transform: translate3d(0, 0, 0);
+    -moz-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    /* background-color:#f9f9f9; */
+    z-index: 0;
+}
+
+#intro {
+    width: 100vw;
+    min-height: 100svh;
+
+    padding: 2rem 0;
+    box-sizing: border-box;
+
+    background-image: url("images/topm.jpg");
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+.intro__hed {
+    font-size: 3em;
+    margin: 2rem auto 0.5rem auto;
+    background-color: #5c5c5c88;
+}
+
+.intro__dek {
+    color: #ffffff;
+    background-color: #5c5c5c88;
+
+}
+
+.footer {
+    width: 100vw;
+    background: #5c5c5c;
+    text-align: center;
+    font-size: 0.7em;
+    margin-top: 4em;
+    padding: 4em 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.content {
+    width: min(640px, calc(100% - 40px));
+    margin: 0 auto;
+}
+
+.content figure img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+p {
+    font-family: 'Times New Roman', Times, serif;
+}
+
+.step_content {
+    background: #dddcdc;
+    font-family: 'Times New Roman', Times, serif;
+    text-align: center;
+    font-size: 1.5em;
+}
+
+.h1 {}

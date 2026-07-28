@@ -1,0 +1,384 @@
+<!doctype html>
+<html>
+
+<head>
+
+  <!-- some basic stuff  -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AD academic papers</title>
+
+  <!-- 
+      add your stylesheet 
+      base.css loads the basic stuff
+      you can tweak your css in custom.css
+      WARNING: the order of the stylesheets matters
+    -->
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="custom.css">
+
+  <!-- add your d3 script -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <!-- add Scrollama -->
+  <script src="https://unpkg.com/scrollama"></script>
+
+  <!-- your JS code that uses d3 to manipulate data -->
+
+  <!-- 
+      Special instructions for loading external data:  
+      1) add the type="module" attribute to your script tag
+      2) use the await keyword to load your data with d3.csv(), so the data is loaded asynchronously. 
+    -->
+
+  <script type="module">
+    //console.log("最新版のJSを読み込みました");
+
+    const d3 = window.d3;
+    const scrollama = window.scrollama;
+
+    const width = 640;
+    const height = 460;
+    const rows = 5;
+    const columns = 10;
+    const groupColumns = 5;
+    const squareSize = 38;
+    const squareGap = 8;
+    const groupGap = 80;
+    const outlinePadding = 12;
+
+    const red = "#e53935";
+    const yellow = "#f4c542";
+    const white = "#ffffff";
+    const squareStroke = "#333333";
+
+    const data = d3.range(50).map((id) => ({
+      id,
+      side: id < 25 ? "left" : "right",
+      localIndex: id % 25
+    }));
+
+    const chart = d3.select("#my-svg-chart");
+    chart.selectAll("svg").remove();
+
+    const svg = chart
+      .append("svg")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("role", "img")
+      .attr("aria-label", "50個の四角形を使ったスクロール図");
+
+    const gridWidth = columns * squareSize + (columns - 1) * squareGap;
+    const gridHeight = rows * squareSize + (rows - 1) * squareGap;
+    const gridStartX = (width - gridWidth) / 2;
+    const gridStartY = (height - gridHeight) / 2;
+
+    const groupWidth = groupColumns * squareSize + (groupColumns - 1) * squareGap;
+    const groupsWidth = groupWidth * 2 + groupGap;
+    const leftGroupX = (width - groupsWidth) / 2;
+    const rightGroupX = leftGroupX + groupWidth + groupGap;
+    const groupStartY = (height - gridHeight) / 2;
+
+    const outlines = svg
+      .append("g")
+      .attr("class", "group-outlines")
+      .selectAll("rect")
+      .data([
+        { side: "left", x: leftGroupX, stroke: red },
+        { side: "right", x: rightGroupX, stroke: "#111111" }
+      ])
+      .join("rect")
+      .attr("x", (d) => d.x - outlinePadding)
+      .attr("y", groupStartY - outlinePadding)
+      .attr("width", groupWidth + outlinePadding * 2)
+      .attr("height", gridHeight + outlinePadding * 2)
+      .attr("rx", 4)
+      .attr("fill", "none")
+      .attr("stroke", (d) => d.stroke)
+      .attr("stroke-width", 4)
+      .attr("opacity", 0);
+
+    const squares = svg
+      .append("g")
+      .attr("class", "squares")
+      .selectAll("rect")
+      .data(data, (d) => d.id)
+      .join("rect")
+      .attr("width", squareSize)
+      .attr("height", squareSize)
+      .attr("rx", 2)
+      .attr("fill", white)
+      .attr("stroke", squareStroke)
+      .attr("stroke-width", 1.5);
+
+    function gridPosition(d) {
+      return {
+        x: gridStartX + (d.id % columns) * (squareSize + squareGap),
+        y: gridStartY + Math.floor(d.id / columns) * (squareSize + squareGap)
+      };
+    }
+
+    function splitPosition(d) {
+      const groupX = d.side === "left" ? leftGroupX : rightGroupX;
+      return {
+        x: groupX + (d.localIndex % groupColumns) * (squareSize + squareGap),
+        y: groupStartY + Math.floor(d.localIndex / groupColumns) * (squareSize + squareGap)
+      };
+    }
+
+    function finalFill(d) {
+      if (d.side === "left" && d.localIndex < 16) return red;
+      if (d.side === "right" && d.localIndex < 6) return red;
+      if (d.side === "right" && d.localIndex === 6) return yellow;
+      return white;
+    }
+
+    function showGrid() {
+      squares
+        .interrupt()
+        .transition()
+        .duration(700)
+        .attr("x", (d) => gridPosition(d).x)
+        .attr("y", (d) => gridPosition(d).y)
+        .attr("fill", white);
+
+      outlines
+        .interrupt()
+        .transition()
+        .duration(300)
+        .attr("opacity", 0);
+    }
+
+    function showSplit() {
+      squares
+        .interrupt()
+        .transition()
+        .duration(700)
+        .attr("x", (d) => splitPosition(d).x)
+        .attr("y", (d) => splitPosition(d).y)
+        .attr("fill", white);
+
+      outlines
+        .interrupt()
+        .transition()
+        .delay(350)
+        .duration(350)
+        .attr("opacity", 1);
+    }
+
+    function showColors() {
+      squares
+        .interrupt()
+        .transition()
+        .duration(500)
+        .attr("x", (d) => splitPosition(d).x)
+        .attr("y", (d) => splitPosition(d).y)
+        .attr("fill", finalFill);
+
+      outlines
+        .interrupt()
+        .transition()
+        .duration(300)
+        .attr("opacity", 1);
+    }
+
+    const scrolly = d3.select("#scroll-content");
+    const figure = scrolly.select("#my-svg-chart");
+    const step = scrolly.selectAll(".step");
+    const scroller = scrollama();
+
+    function handleResize() {
+      const stepHeight = Math.floor(window.innerHeight * 0.75);
+      step.style("height", `${stepHeight}px`);
+
+      const figureHeight = Math.min(window.innerHeight * 0.8, 640);
+      const figureMarginTop = (window.innerHeight - figureHeight) / 2;
+
+      figure
+        .style("height", `${figureHeight}px`)
+        .style("top", `${figureMarginTop}px`);
+
+      scroller.resize();
+    }
+
+    function handleStepEnter(response) {
+      step.classed("is-active", (d, i) => i === response.index);
+
+      if (response.index === 0) showGrid();
+      if (response.index === 1) showSplit();
+      if (response.index === 2) showColors();
+    }
+
+    function init() {
+      showGrid();
+      handleResize();
+
+      scroller
+        .setup({
+          step: "#scroll-content .step",
+          offset: 0.33,
+          debug: false
+        })
+        .onStepEnter(handleStepEnter);
+
+      window.addEventListener("resize", handleResize);
+    }
+
+    init();
+
+  </script>
+</head>
+
+<body>
+
+  <section id="intro">
+    <h1 class="intro__hed">Chinese Autonomous-Driving Research Rapidly Expands Its Presence in VLA and VLM</h1>
+    <p class="intro__dek">
+      by Rei Kuge
+    </p>
+    <p class="intro__dek">
+      Chinese companies and research institutions are becoming increasingly prominent in autonomous-driving research.
+      An analysis of the competitiveness of Chinese research institutions, based on data from arXiv, a preprint platform
+      that hosts artificial intelligence-related papers, has revealed that China is gaining a particularly strong
+      presence in next-generation foundational technologies known as VLA and VLM.
+    </p>
+  </section>
+
+
+
+
+  <div id="scroll-content"> <!-- The overall container -->
+    <div id="my-svg-chart"></div> <!-- Your chart -->
+    <div id="text"> <!-- Your text -->
+      <div class="step">
+        <div class="step_content">To identify recent citation trends, we collected reference information from 50 papers
+          submitted
+          to arXiv since April 2026.</div>
+      </div>
+      <div class="step">
+        <div class="step_content">
+          Of the 50 papers, 25 included authors affiliated with Chinese companies, universities or other
+          institutions, while the remaining 25 did not.
+          We then examined the distribution of references cited by each paper.
+          In total, the papers contained approximately 2,000 references.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step_content">Our analysis of the references cited by the 50 papers found that, in 23 of them, the
+          number
+          of
+          cited papers that included authors from Chinese institutions was equal to or greater than the number that
+          included authors from U.S. institutions.
+          One particularly interesting finding was that, among the 25 papers published without authors from Chinese
+          institutions, six cited more papers published by Chinese institutions than papers published by U.S.
+          institutions.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="content">
+    <p>In the autonomous-driving field, expectations have risen rapidly since around 2024 for a technology known as
+      end-to-end, or E2E, autonomous driving, in which a single AI system handles everything from perception and
+      decision-making to vehicle control.
+      Compared with conventional rule-based autonomous-driving technologies, E2E systems make it easier to develop
+      responses to extreme or unusual situations. U.S. companies Tesla and Waymo were among the pioneers in this field.
+      An analysis of the number of papers submitted to arXiv shows that the volume of research related to E2E autonomous
+      driving has continued to rise steadily.</p>
+  </div>
+
+
+  <div class="content">
+    <figure>
+      <img src="images/1.png" alt="The number of papers on autonomous driving is increasing">
+      <figcaption>We categolized papers according to what word is contained in abstract.(source:Nikkei Automotive)
+      </figcaption>
+    </figure>
+  </div>
+
+
+  <div class="content">
+    <p>As efforts continue to commercialize E2E autonomous driving, attention is focusing on foundational technologies
+      known as Vision-Language Models, or VLMs, and Vision-Language-Action models, or VLAs.
+      A VLM is an AI model capable of processing images and language together, while a VLA builds on a VLM to also
+      generate actions.</p>
+  </div>
+
+  <div class="content">
+    <p>Research into VLMs and VLAs began to accelerate around 2024 and has since expanded rapidly. Approximately 300
+      papers related to E2E autonomous driving were submitted to arXiv in 2025. Of these, around 200 were related to
+      VLMs and approximately 50 were related to VLAs. Moreover, as of July 2026, the number of VLA papers submitted in
+      2026 had already exceeded the total for 2025, suggesting that VLA is rapidly becoming an even more prominent
+      buzzword.</p>
+  </div>
+
+  <div class="content">
+    <p>China sees autonomous driving and other physical-AI applications as a key area of future competition and is
+      investing heavily in their development. In its 15th Five-Year Plan, adopted in 2025, the country identified
+      autonomous driving as a priority development area alongside large passenger aircraft and next-generation solar
+      cells.</p>
+  </div>
+
+  <div class="content">
+    <p>Among the 15 most highly cited papers in each field, 10 of the VLM papers and 11 of the VLA papers included
+      authors affiliated with Chinese institutions.</p>
+  </div>
+
+  <div class="content">
+    <p>Alongside research institutions such as Shanghai University, Tsinghua University and the Shanghai Artificial
+      Intelligence Laboratory, privately owned automakers and suppliers are also establishing a strong presence.
+      Particularly prominent are emerging new-energy vehicle manufacturers Li Auto and Xiaomi Auto. In the VLM field,
+      Huawei Noah’s Ark Lab, Huawei’s research organization, and major semiconductor company Horizon Robotics are also
+      advancing research.</p>
+  </div>
+
+
+  <div class="content">
+    <figure>
+      <img src="images/2.png"
+        alt="10/15 most cited papers about VLM are published by chinese institutions.11/15 most cited papers about VLA are published by chinese institutions.">
+      <figcaption>Red text means the institutions locate in China. We consider China include HongKong and Macu. Data is
+        as of July 2026.(source:Nikkei Automotive)
+      </figcaption>
+    </figure>
+  </div>
+
+
+  <div class="content">
+    <p>A paper jointly published by Li Auto and Tsinghua University in 2024 had the second-highest citation count among
+      VLM-related studies. In the paper, the researchers proposed a technology called DriveVLM-Dual. DriveVLM-Dual
+      improves computational speed by operating a VLM and a conventional autonomous-driving system in parallel.</p>
+  </div>
+
+  <div class="content">
+    <p>Li Auto claims that the i8 electric vehicle it launched in 2025 is equipped with a VLA system. As sales growth of
+      its range-extender electric vehicles, or REEVs, slows, the company intends to differentiate itself by accelerating
+      the development of autonomous-driving capabilities.</p>
+  </div>
+
+
+  <div class="content">
+    <figure>
+      <img src="images/3.png" alt="Photo of Li Auto i6">
+      <figcaption>Li Auto i6 also use VLA for ADAS.(souce:Nikkei Automotive)
+      </figcaption>
+    </figure>
+  </div>
+
+
+
+
+
+  <div class="footer">
+    <div class="content">
+      <p>The code and data used for this analysis are available in this GitHub repository <a
+          href="https://github.com/kugerei213-web/RecallAnalyze">here</a>.
+      </p>
+    </div>
+  </div>
+
+
+
+</body>
+
+</html>
